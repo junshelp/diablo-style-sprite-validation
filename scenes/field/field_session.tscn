@@ -1,0 +1,264 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/field_session_view.gd" id="1_field"]
+[ext_resource type="PackedScene" path="res://scenes/field/explorer.tscn" id="2_explorer"]
+[ext_resource type="PackedScene" path="res://scenes/ui/object_interaction_menu.tscn" id="3_menu"]
+[ext_resource type="PackedScene" path="res://scenes/field/chase_entity.tscn" id="4_entity"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+bg_color = Color(0.025, 0.03, 0.034, 0.9)
+border_width_bottom = 1
+border_color = Color(0.25, 0.28, 0.28, 1)
+
+[node name="FieldSessionView" type="Node2D"]
+unique_name_in_owner = true
+script = ExtResource("1_field")
+
+[node name="Geometry" type="Node2D" parent="."]
+unique_name_in_owner = true
+
+[node name="Explorer" parent="." instance=ExtResource("2_explorer")]
+
+[node name="ChaseEntity" parent="." instance=ExtResource("4_entity")]
+
+[node name="FieldCanvas" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="DarknessOverlay" type="ColorRect" parent="FieldCanvas"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.01, 0.015, 0.02, 0.08)
+
+[node name="EncounterTint" type="ColorRect" parent="FieldCanvas"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.28, 0.015, 0.01, 0)
+
+[node name="FieldHud" type="Control" parent="FieldCanvas"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="PanelContainer" parent="FieldCanvas/FieldHud"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 82.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
+
+[node name="TopMargin" type="MarginContainer" parent="FieldCanvas/FieldHud/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 16
+
+[node name="TopLayout" type="HBoxContainer" parent="FieldCanvas/FieldHud/TopBar/TopMargin"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="ConditionLabel" type="Label" parent="FieldCanvas/FieldHud/TopBar/TopMargin/TopLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.8, 0.7, 1)
+theme_override_font_sizes/font_size = 21
+text = "현장 상태  ·  평상"
+
+[node name="LoadoutLabel" type="Label" parent="FieldCanvas/FieldHud/TopBar/TopMargin/TopLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.56, 0.59, 0.58, 1)
+theme_override_font_sizes/font_size = 17
+text = "손전등 장착  ·  빠루 1  ·  퓨즈 1"
+vertical_alignment = 1
+
+[node name="RouteLabel" type="Label" parent="FieldCanvas/FieldHud/TopBar/TopMargin/TopLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.43, 0.47, 0.47, 1)
+theme_override_font_sizes/font_size = 14
+text = "SEED 0  ·  5 MODULES  ·  BRANCH 1"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SessionStateLabel" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -390.0
+offset_top = 92.0
+offset_right = -34.0
+offset_bottom = 124.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.68, 0.61, 0.49, 1)
+theme_override_font_sizes/font_size = 15
+text = "미확정 부품 0  ·  조명 미복구"
+horizontal_alignment = 2
+
+[node name="HpLabel" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+offset_left = 34.0
+offset_top = 92.0
+offset_right = 300.0
+offset_bottom = 124.0
+theme_override_colors/font_color = Color(0.86, 0.64, 0.57, 1)
+theme_override_font_sizes/font_size = 17
+text = "체력  ● ● ●"
+
+[node name="EncounterStateLabel" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+offset_left = 34.0
+offset_top = 126.0
+offset_right = 360.0
+offset_bottom = 156.0
+theme_override_colors/font_color = Color(0.58, 0.55, 0.5, 1)
+theme_override_font_sizes/font_size = 14
+text = "조우  ·  DORMANT"
+
+[node name="EncounterBanner" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -320.0
+offset_top = 112.0
+offset_right = 320.0
+offset_bottom = 174.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.95, 0.46, 0.31, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 28
+text = "경고 · 통로 깊은 곳에서 움직임 감지"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ControlHint" type="Label" parent="FieldCanvas/FieldHud"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 34.0
+offset_top = -62.0
+offset_right = 520.0
+offset_bottom = -24.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.5, 0.54, 0.52, 1)
+theme_override_font_sizes/font_size = 15
+text = "WASD / 방향키 이동  ·  입구/종착점에서 E 회수"
+
+[node name="ReturnPrompt" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -82.0
+offset_right = 180.0
+offset_bottom = -34.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.91, 0.84, 0.68, 1)
+theme_override_font_sizes/font_size = 20
+text = "입구 회수 지점  ·  E 회수"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ObjectPrompt" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -190.0
+offset_top = -82.0
+offset_right = 190.0
+offset_bottom = -34.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.91, 0.72, 0.38, 1)
+theme_override_font_sizes/font_size = 20
+text = "사물함  ·  E 조사"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HidePrompt" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -240.0
+offset_top = -88.0
+offset_right = 240.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.96, 0.58, 0.32, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_font_sizes/font_size = 21
+text = "캐비닛  ·  E 은신"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResultLabel" type="Label" parent="FieldCanvas/FieldHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -520.0
+offset_top = -72.0
+offset_right = -34.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.73, 0.68, 0.57, 1)
+theme_override_font_sizes/font_size = 15
+text = ""
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ObjectInteractionMenu" parent="FieldCanvas" instance=ExtResource("3_menu")]
+unique_name_in_owner = true
+
+[node name="WarningAudio" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

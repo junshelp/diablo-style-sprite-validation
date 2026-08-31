@@ -1,0 +1,32 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/explorer_controller.gd" id="1_explorer"]
+
+[sub_resource type="CircleShape2D" id="CircleShape_explorer"]
+radius = 18.0
+
+[sub_resource type="Gradient" id="Gradient_placeholder"]
+colors = PackedColorArray(0.74, 0.69, 0.58, 1, 0.52, 0.16, 0.13, 1)
+
+[node name="Explorer" type="CharacterBody2D"]
+unique_name_in_owner = true
+z_index = 10
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1_explorer")
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, -24, 17, -8, 14, 18, 0, 27, -14, 18, -17, -8)
+color = Color(0.76, 0.7, 0.58, 1)
+
+[node name="Facing" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, -24, 7, -13, -7, -13)
+color = Color(0.55, 0.16, 0.13, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape_explorer")
+
+[node name="FollowCamera" type="Camera2D" parent="."]
+unique_name_in_owner = true
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0

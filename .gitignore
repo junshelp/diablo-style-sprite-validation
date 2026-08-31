@@ -1,0 +1,9 @@
+/.godot/
+.DS_Store
+
+# Local Codex Harness records and unapproved art references stay on this machine.
+/.agents/
+/_workspace/
+/concepts/
+/docs/harness/
+/docs/prompts/

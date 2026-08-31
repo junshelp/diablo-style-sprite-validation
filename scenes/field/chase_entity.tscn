@@ -1,0 +1,33 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/chase_entity_view.gd" id="1_entity"]
+
+[sub_resource type="CircleShape2D" id="CircleShape_entity"]
+radius = 20.0
+
+[node name="ChaseEntity" type="CharacterBody2D"]
+unique_name_in_owner = true
+visible = false
+z_index = 9
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_entity")
+
+[node name="FovDebugCone" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+visible = false
+z_index = -1
+color = Color(0.72, 0.12, 0.08, 0.16)
+
+[node name="BodyShape" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+polygon = PackedVector2Array(-28, -18, 12, -23, 30, 0, 12, 23, -28, 18, -18, 0)
+color = Color(0.62, 0.08, 0.075, 1)
+
+[node name="FacingMark" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+polygon = PackedVector2Array(30, 0, 13, -8, 13, 8)
+color = Color(0.93, 0.48, 0.27, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape_entity")
