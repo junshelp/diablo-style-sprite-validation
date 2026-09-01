@@ -21,7 +21,7 @@ func _run() -> void:
 	_test_wrong_tool_and_one_attempt()
 	_test_seeded_crowbar_reaction()
 	_test_fuse_reaction()
-	await _test_placeholder_lighting_levels()
+	await _test_field_lighting_states()
 	await _test_menu_pause_result_storage_and_return()
 	_finish()
 
@@ -106,9 +106,9 @@ func _test_fuse_reaction() -> void:
 	_check(session.fuse_count == 0 and session.lighting_restored, "fuse is consumed and session lighting is restored")
 
 
-func _test_placeholder_lighting_levels() -> void:
+func _test_field_lighting_states() -> void:
 	var packed_field := load("res://scenes/field/field_session.tscn") as PackedScene
-	_check(packed_field != null, "field scene loads for lighting-level presentation smoke")
+	_check(packed_field != null, "field scene loads for world-lighting presentation smoke")
 	if packed_field == null:
 		return
 	var field_view := packed_field.instantiate() as FieldSessionView
@@ -118,25 +118,29 @@ func _test_placeholder_lighting_levels() -> void:
 
 	var normal: FieldSession = _new_session(FieldSession.CONDITION_NORMAL, false, 401)
 	field_view.start_session(normal)
-	var normal_alpha: float = field_view.darkness_alpha()
+	var normal_lighting: Dictionary = field_view.lighting_state_snapshot()
 	field_view.end_session()
 	await process_frame
 	var restored: FieldSession = _new_session(FieldSession.CONDITION_BLACKOUT, false, 402)
 	restored.lighting_restored = true
 	field_view.start_session(restored)
-	var restored_alpha: float = field_view.darkness_alpha()
+	var restored_lighting: Dictionary = field_view.lighting_state_snapshot()
 	field_view.end_session()
 	await process_frame
 	var flashlight: FieldSession = _new_session(FieldSession.CONDITION_BLACKOUT, true, 403)
 	field_view.start_session(flashlight)
-	var flashlight_alpha: float = field_view.darkness_alpha()
+	var flashlight_lighting: Dictionary = field_view.lighting_state_snapshot()
 	field_view.end_session()
 	await process_frame
 	var unprepared: FieldSession = _new_session(FieldSession.CONDITION_BLACKOUT, false, 404)
 	field_view.start_session(unprepared)
-	var unprepared_alpha: float = field_view.darkness_alpha()
-	_check(normal_alpha < restored_alpha and restored_alpha < flashlight_alpha and flashlight_alpha < unprepared_alpha, "normal, restored, flashlight and unprepared placeholder darkness stay externally distinct")
-	_check(flashlight_alpha > normal_alpha, "flashlight mitigates blackout without making it visually normal")
+	var unprepared_lighting: Dictionary = field_view.lighting_state_snapshot()
+	_check(normal_lighting["state"] == "normal_ambient", "normal condition selects stable world ambient")
+	_check(restored_lighting["state"] == "restored_fixtures" and int(restored_lighting["visible_fixture_count"]) > 0, "restored lighting selects fixed visible fixtures")
+	_check(flashlight_lighting["state"] == "blackout_flashlight" and bool(flashlight_lighting["explorer_lights"]["flashlight_visible"]), "blackout flashlight selects the directional player light")
+	_check(unprepared_lighting["state"] == "blackout_unprepared" and bool(unprepared_lighting["explorer_lights"]["minimum_visible"]) and not bool(unprepared_lighting["explorer_lights"]["flashlight_visible"]), "blackout unprepared keeps only short local visibility")
+	_check(float(normal_lighting["darkness_strength"]) < float(restored_lighting["darkness_strength"]) and float(restored_lighting["darkness_strength"]) < float(flashlight_lighting["darkness_strength"]) and float(flashlight_lighting["darkness_strength"]) < float(unprepared_lighting["darkness_strength"]), "normal, restored, flashlight and unprepared world visibility remain externally ordered")
+	_check(not bool(unprepared_lighting["legacy_screen_overlay_visible"]), "blackout no longer uses a full-screen HUD overlay")
 	field_view.queue_free()
 	await process_frame
 
@@ -233,15 +237,16 @@ func _test_menu_pause_result_storage_and_return() -> void:
 	_check(int(after_wrong["result_application_count"]) == 1, "post-close result count is exactly one")
 	_check(not field_view.open_object_interaction_for_test(locker_id), "resolved locker cannot reopen")
 
-	var blackout_alpha: float = field_view.darkness_alpha()
-	_check(blackout_alpha >= 0.65, "blackout without flashlight exposes the strongest placeholder darkness")
+	var blackout_lighting: Dictionary = field_view.lighting_state_snapshot()
+	_check(blackout_lighting["state"] == "blackout_unprepared" and not bool(blackout_lighting["explorer_lights"]["flashlight_visible"]), "blackout without flashlight exposes only short local world visibility")
 	var panel_id: StringName = field_view.move_explorer_to_object_type(FieldObjectState.TYPE_POWER_PANEL)
 	_check(panel_id != &"" and field_view.open_object_interaction_for_test(panel_id), "nearby power panel opens the same two-stage menu")
 	menu.show_item_stage()
 	menu.select_tool_for_test(ObjectInteractionRules.TOOL_FUSE)
 	var after_fuse: Dictionary = app_root.call("active_field_session_snapshot") as Dictionary
 	_check(int(after_fuse["fuse_count"]) == 0 and bool(after_fuse["lighting_restored"]), "presentation fuse choice consumes one and restores lighting")
-	_check(field_view.darkness_alpha() < blackout_alpha, "lighting restore updates the current blackout overlay")
+	var restored_lighting: Dictionary = field_view.lighting_state_snapshot()
+	_check(restored_lighting["state"] == "restored_fixtures" and int(restored_lighting["visible_fixture_count"]) > 0, "lighting restore immediately replaces blackout with fixed world fixtures")
 
 	var later_locker_id: StringName = field_view.move_explorer_to_object_type(FieldObjectState.TYPE_LOCKER)
 	_check(later_locker_id != &"" and field_view.open_object_interaction_for_test(later_locker_id), "later unattempted locker remains searchable")

@@ -15,8 +15,32 @@ const DAMAGE_KNOCKBACK_DISTANCE: float = 118.0
 const WALL_THICKNESS: float = 22.0
 const BUNDLED_UI_FONT: Font = preload("res://assets/fonts/NotoSansKR-wght.fontdata")
 const UI_THEME: Theme = preload("res://assets/ui/dark_horror_ui_theme.tres")
+const LIGHTING_STATE_NORMAL: StringName = &"normal_ambient"
+const LIGHTING_STATE_BLACKOUT_UNPREPARED: StringName = &"blackout_unprepared"
+const LIGHTING_STATE_BLACKOUT_FLASHLIGHT: StringName = &"blackout_flashlight"
+const LIGHTING_STATE_RESTORED: StringName = &"restored_fixtures"
+const RADIAL_LIGHT_TEXTURE_SIZE: int = 256
+const CONE_LIGHT_TEXTURE_SIZE: int = 512
+const MINIMUM_VISIBILITY_RADIUS: float = 118.0
+const FLASHLIGHT_CONE_RANGE: float = 384.0
+const FLASHLIGHT_CONE_HALF_ANGLE_DEGREES: float = 34.0
+const RESTORED_FIXTURE_RADIUS: float = 256.0
+const NORMAL_AMBIENT: Color = Color(0.9, 0.92, 0.88, 1.0)
+const BLACKOUT_AMBIENT: Color = Color(0.045, 0.055, 0.075, 1.0)
+const RESTORED_AMBIENT: Color = Color(0.56, 0.58, 0.48, 1.0)
+const DARKNESS_STRENGTHS: Dictionary = {
+	LIGHTING_STATE_NORMAL: 0.1,
+	LIGHTING_STATE_RESTORED: 0.48,
+	LIGHTING_STATE_BLACKOUT_FLASHLIGHT: 0.86,
+	LIGHTING_STATE_BLACKOUT_UNPREPARED: 0.92,
+}
+
+static var _radial_light_texture: ImageTexture
+static var _flashlight_cone_texture: ImageTexture
 
 @onready var geometry: Node2D = %Geometry
+@onready var world_ambient: CanvasModulate = %WorldAmbient
+@onready var restored_fixtures: Node2D = %RestoredFixtures
 @onready var explorer: ExplorerController = %Explorer
 @onready var chase_entity: ChaseEntityView = %ChaseEntity
 @onready var condition_label: Label = %ConditionLabel
@@ -32,6 +56,7 @@ const UI_THEME: Theme = preload("res://assets/ui/dark_horror_ui_theme.tres")
 @onready var result_label: Label = %ResultLabel
 @onready var darkness_overlay: ColorRect = %DarknessOverlay
 @onready var encounter_tint: ColorRect = %EncounterTint
+@onready var field_canvas: CanvasLayer = %FieldCanvas
 @onready var field_hud: Control = %FieldHud
 @onready var interaction_menu: ObjectInteractionMenu = %ObjectInteractionMenu
 @onready var warning_audio: AudioStreamPlayer = %WarningAudio
@@ -40,7 +65,9 @@ var _session: FieldSession
 var _interaction_service: FieldInteractionService
 var _encounter_service: FieldEncounterService
 var _solid_rectangles: Array[Rect2] = []
+var _light_occluders: Array[LightOccluder2D] = []
 var _named_sight_blockers: Dictionary = {}
+var _named_light_occluders: Dictionary = {}
 var _interaction_was_pressed: bool = false
 var _nearby_object_id: StringName = &""
 var _nearby_hide_spot_id: StringName = &""
@@ -55,6 +82,9 @@ var _entered_hide_spot_id: StringName = &""
 func _ready() -> void:
 	if _encounter_service == null:
 		_encounter_service = FieldEncounterService.new()
+	_ensure_light_textures()
+	explorer.configure_visibility_lights(_radial_light_texture, _flashlight_cone_texture)
+	explorer.set_visibility_lights(false, false)
 	visible = false
 	field_hud.visible = false
 	interaction_menu.close_menu()
@@ -135,10 +165,15 @@ func end_session() -> void:
 	encounter_banner.visible = false
 	hide_prompt.visible = false
 	encounter_tint.color.a = 0.0
+	world_ambient.color = Color.WHITE
+	explorer.set_visibility_lights(false, false)
+	_clear_restored_fixtures()
 	set_process(false)
 	for child: Node in geometry.get_children():
 		child.queue_free()
 	_solid_rectangles.clear()
+	_light_occluders.clear()
+	_named_light_occluders.clear()
 	queue_redraw()
 
 
@@ -180,6 +215,14 @@ func move_explorer_to_object(object_id: StringName) -> bool:
 
 func move_explorer_for_test(input_vector: Vector2, delta: float) -> void:
 	explorer.move_for_test(input_vector, delta)
+
+
+func set_explorer_facing_for_test(input_vector: Vector2) -> void:
+	explorer.set_facing_for_test(input_vector)
+
+
+func explorer_facing_direction() -> Vector2:
+	return explorer.last_facing_direction()
 
 
 func explorer_position() -> Vector2:
@@ -288,6 +331,20 @@ func named_sight_blocker(blocker_name: StringName) -> Rect2:
 	return _named_sight_blockers[blocker_name]
 
 
+func named_light_occluder(blocker_name: StringName) -> LightOccluder2D:
+	if not _named_light_occluders.has(blocker_name):
+		return null
+	return _named_light_occluders[blocker_name] as LightOccluder2D
+
+
+func light_occluder_count() -> int:
+	return _light_occluders.size()
+
+
+func visual_light_path_blocked_for_test(origin: Vector2, target: Vector2) -> bool:
+	return _ray_is_blocked(origin, target)
+
+
 func interaction_menu_node() -> ObjectInteractionMenu:
 	return interaction_menu
 
@@ -305,7 +362,44 @@ func advance_field_frame_for_test(delta: float) -> void:
 
 
 func darkness_alpha() -> float:
-	return darkness_overlay.color.a
+	if _session == null:
+		return 0.0
+	return float(DARKNESS_STRENGTHS[_resolved_lighting_state()])
+
+
+func lighting_state_snapshot() -> Dictionary:
+	if _session == null:
+		return {}
+	var explorer_lights: Dictionary = explorer.visibility_light_snapshot()
+	var visible_fixture_count: int = 0
+	var fixture_shadows_enabled: bool = true
+	for child: Node in restored_fixtures.get_children():
+		var fixture := child as PointLight2D
+		if fixture == null:
+			continue
+		if fixture.visible:
+			visible_fixture_count += 1
+		fixture_shadows_enabled = fixture_shadows_enabled and fixture.shadow_enabled
+	return {
+		"state": String(_resolved_lighting_state()),
+		"ambient": world_ambient.color,
+		"darkness_strength": darkness_alpha(),
+		"minimum_visibility_radius": MINIMUM_VISIBILITY_RADIUS,
+		"flashlight_cone_range": FLASHLIGHT_CONE_RANGE,
+		"flashlight_cone_half_angle_degrees": FLASHLIGHT_CONE_HALF_ANGLE_DEGREES,
+		"restored_fixture_radius": RESTORED_FIXTURE_RADIUS,
+		"fixture_count": restored_fixtures.get_child_count(),
+		"visible_fixture_count": visible_fixture_count,
+		"fixture_shadows_enabled": fixture_shadows_enabled,
+		"solid_count": _solid_rectangles.size(),
+		"occluder_count": _light_occluders.size(),
+		"world_canvas_modulated": world_ambient.get_parent() == self,
+		"hud_canvas_layer": field_canvas.layer,
+		"hud_modulate": field_hud.modulate,
+		"menu_modulate": interaction_menu.modulate,
+		"legacy_screen_overlay_visible": darkness_overlay.visible,
+		"explorer_lights": explorer_lights,
+	}
 
 
 func try_open_nearby_object() -> bool:
@@ -752,14 +846,112 @@ func _render_result(result: ObjectInteractionResult) -> void:
 
 
 func _apply_lighting() -> void:
+	var lighting_state: StringName = _resolved_lighting_state()
+	darkness_overlay.visible = false
+	darkness_overlay.color = Color.TRANSPARENT
+	match lighting_state:
+		LIGHTING_STATE_NORMAL:
+			world_ambient.color = NORMAL_AMBIENT
+			explorer.set_visibility_lights(false, false)
+			_set_restored_fixtures_visible(false)
+		LIGHTING_STATE_BLACKOUT_UNPREPARED:
+			world_ambient.color = BLACKOUT_AMBIENT.darkened(0.12)
+			explorer.set_visibility_lights(true, false)
+			_set_restored_fixtures_visible(false)
+		LIGHTING_STATE_BLACKOUT_FLASHLIGHT:
+			world_ambient.color = BLACKOUT_AMBIENT
+			explorer.set_visibility_lights(true, true)
+			_set_restored_fixtures_visible(false)
+		LIGHTING_STATE_RESTORED:
+			world_ambient.color = RESTORED_AMBIENT
+			explorer.set_visibility_lights(false, false)
+			_set_restored_fixtures_visible(true)
+
+
+func _resolved_lighting_state() -> StringName:
 	if _session.lighting_restored:
-		darkness_overlay.color = Color(0.008, 0.012, 0.018, 0.2)
-	elif _session.condition == FieldSession.CONDITION_NORMAL:
-		darkness_overlay.color = Color(0.01, 0.015, 0.02, 0.08)
-	elif _session.flashlight_equipped:
-		darkness_overlay.color = Color(0.003, 0.006, 0.014, 0.46)
-	else:
-		darkness_overlay.color = Color(0.002, 0.004, 0.012, 0.68)
+		return LIGHTING_STATE_RESTORED
+	if _session.condition == FieldSession.CONDITION_NORMAL:
+		return LIGHTING_STATE_NORMAL
+	if _session.flashlight_equipped:
+		return LIGHTING_STATE_BLACKOUT_FLASHLIGHT
+	return LIGHTING_STATE_BLACKOUT_UNPREPARED
+
+
+func _ensure_light_textures() -> void:
+	if _radial_light_texture == null:
+		_radial_light_texture = _build_radial_light_texture()
+	if _flashlight_cone_texture == null:
+		_flashlight_cone_texture = _build_flashlight_cone_texture()
+
+
+func _build_radial_light_texture() -> ImageTexture:
+	var image := Image.create(RADIAL_LIGHT_TEXTURE_SIZE, RADIAL_LIGHT_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	var center := Vector2(float(RADIAL_LIGHT_TEXTURE_SIZE - 1) * 0.5, float(RADIAL_LIGHT_TEXTURE_SIZE - 1) * 0.5)
+	var radius: float = float(RADIAL_LIGHT_TEXTURE_SIZE) * 0.5
+	for y: int in range(RADIAL_LIGHT_TEXTURE_SIZE):
+		for x: int in range(RADIAL_LIGHT_TEXTURE_SIZE):
+			var normalized_distance: float = Vector2(float(x), float(y)).distance_to(center) / radius
+			var intensity: float = pow(maxf(0.0, 1.0 - normalized_distance), 1.35)
+			image.set_pixel(x, y, Color(intensity, intensity, intensity, intensity))
+	return ImageTexture.create_from_image(image)
+
+
+func _build_flashlight_cone_texture() -> ImageTexture:
+	var image := Image.create(CONE_LIGHT_TEXTURE_SIZE, CONE_LIGHT_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	var origin := Vector2(float(CONE_LIGHT_TEXTURE_SIZE - 1) * 0.5, float(CONE_LIGHT_TEXTURE_SIZE - 1) * 0.5)
+	var maximum_distance: float = float(CONE_LIGHT_TEXTURE_SIZE) * 0.5 - 8.0
+	var inner_angle: float = deg_to_rad(FLASHLIGHT_CONE_HALF_ANGLE_DEGREES - 8.0)
+	var outer_angle: float = deg_to_rad(FLASHLIGHT_CONE_HALF_ANGLE_DEGREES)
+	for y: int in range(CONE_LIGHT_TEXTURE_SIZE):
+		for x: int in range(CONE_LIGHT_TEXTURE_SIZE):
+			var offset := Vector2(float(x), float(y)) - origin
+			if offset.x <= 0.0:
+				continue
+			var distance: float = offset.length()
+			if distance >= maximum_distance:
+				continue
+			var angle: float = absf(offset.angle())
+			if angle >= outer_angle:
+				continue
+			var radial_fade: float = 1.0 - smoothstep(0.12, 1.0, distance / maximum_distance)
+			var angular_fade: float = 1.0 - smoothstep(inner_angle, outer_angle, angle)
+			var intensity: float = clampf(radial_fade * angular_fade, 0.0, 1.0)
+			image.set_pixel(x, y, Color(intensity, intensity, intensity, intensity))
+	return ImageTexture.create_from_image(image)
+
+
+func _rebuild_restored_fixtures(route: FieldRoute) -> void:
+	_clear_restored_fixtures()
+	var fixture_positions: Array[Vector2] = route.main_module_positions.duplicate()
+	fixture_positions.append(route.branch_position)
+	for index: int in range(fixture_positions.size()):
+		var fixture := PointLight2D.new()
+		fixture.name = "RestoredFixture%02d" % index
+		fixture.position = fixture_positions[index] + Vector2(0.0, -48.0)
+		fixture.texture = _radial_light_texture
+		fixture.texture_scale = 2.0
+		fixture.energy = 1.25
+		fixture.color = Color(1.0, 0.82, 0.5, 1.0)
+		fixture.shadow_enabled = true
+		fixture.shadow_filter = 1
+		fixture.shadow_filter_smooth = 2.0
+		fixture.range_item_cull_mask = 1
+		fixture.shadow_item_cull_mask = 1
+		fixture.visible = false
+		restored_fixtures.add_child(fixture)
+
+
+func _set_restored_fixtures_visible(value: bool) -> void:
+	for child: Node in restored_fixtures.get_children():
+		var fixture := child as PointLight2D
+		if fixture != null:
+			fixture.visible = value
+
+
+func _clear_restored_fixtures() -> void:
+	for child: Node in restored_fixtures.get_children():
+		child.free()
 
 
 func _draw() -> void:
@@ -808,7 +1000,9 @@ func _rebuild_geometry(route: FieldRoute) -> void:
 	for child: Node in geometry.get_children():
 		child.free()
 	_solid_rectangles.clear()
+	_light_occluders.clear()
 	_named_sight_blockers.clear()
+	_named_light_occluders.clear()
 	var route_width: float = route.bounds.size.x
 	var gap_left: float = route.branch_position.x - 170.0
 	var gap_right: float = route.branch_position.x + 170.0
@@ -833,6 +1027,7 @@ func _rebuild_geometry(route: FieldRoute) -> void:
 	for hide_spot: FieldHideSpotState in _session.hide_spots:
 		var blocker_name: StringName = &"closed_shutter" if hide_spot.spot_type == FieldHideSpotState.TYPE_CLOSED_SHUTTER else &"cabinet"
 		_add_solid(hide_spot.blocker_rect, blocker_name)
+	_rebuild_restored_fixtures(route)
 
 
 func _add_solid(rectangle: Rect2, blocker_name: StringName = &"") -> void:
@@ -849,3 +1044,21 @@ func _add_solid(rectangle: Rect2, blocker_name: StringName = &"") -> void:
 	collision_shape.position = rectangle.position + rectangle.size * 0.5
 	body.add_child(collision_shape)
 	geometry.add_child(body)
+
+	var light_occluder := LightOccluder2D.new()
+	light_occluder.name = "LightOccluder%02d" % _light_occluders.size()
+	light_occluder.position = rectangle.position
+	light_occluder.occluder_light_mask = 1
+	var occluder_polygon := OccluderPolygon2D.new()
+	occluder_polygon.closed = true
+	occluder_polygon.polygon = PackedVector2Array([
+		Vector2.ZERO,
+		Vector2(rectangle.size.x, 0.0),
+		rectangle.size,
+		Vector2(0.0, rectangle.size.y),
+	])
+	light_occluder.occluder = occluder_polygon
+	geometry.add_child(light_occluder)
+	_light_occluders.append(light_occluder)
+	if blocker_name != &"":
+		_named_light_occluders[blocker_name] = light_occluder

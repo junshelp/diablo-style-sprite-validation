@@ -14,6 +14,16 @@ border_color = Color(0.25, 0.28, 0.28, 1)
 unique_name_in_owner = true
 script = ExtResource("1_field")
 
+[node name="WorldAmbient" type="CanvasModulate" parent="."]
+unique_name_in_owner = true
+color = Color(0.9, 0.92, 0.88, 1)
+
+[node name="WorldLighting" type="Node2D" parent="."]
+unique_name_in_owner = true
+
+[node name="RestoredFixtures" type="Node2D" parent="WorldLighting"]
+unique_name_in_owner = true
+
 [node name="Geometry" type="Node2D" parent="."]
 unique_name_in_owner = true
 
@@ -22,17 +32,19 @@ unique_name_in_owner = true
 [node name="ChaseEntity" parent="." instance=ExtResource("4_entity")]
 
 [node name="FieldCanvas" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
 layer = 2
 
 [node name="DarknessOverlay" type="ColorRect" parent="FieldCanvas"]
 unique_name_in_owner = true
+visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.01, 0.015, 0.02, 0.08)
+color = Color(0, 0, 0, 0)
 
 [node name="EncounterTint" type="ColorRect" parent="FieldCanvas"]
 unique_name_in_owner = true
