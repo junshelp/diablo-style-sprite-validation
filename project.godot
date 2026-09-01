@@ -23,6 +23,7 @@ window/stretch/mode="canvas_items"
 
 [gui]
 
+theme/custom="res://assets/ui/dark_horror_ui_theme.tres"
 theme/custom_font="res://assets/fonts/NotoSansKR-UI.tres"
 
 [rendering]

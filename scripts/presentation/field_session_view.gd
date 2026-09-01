@@ -14,6 +14,7 @@ const ENTITY_CONTACT_RADIUS: float = 42.0
 const DAMAGE_KNOCKBACK_DISTANCE: float = 118.0
 const WALL_THICKNESS: float = 22.0
 const BUNDLED_UI_FONT: Font = preload("res://assets/fonts/NotoSansKR-wght.fontdata")
+const UI_THEME: Theme = preload("res://assets/ui/dark_horror_ui_theme.tres")
 
 @onready var geometry: Node2D = %Geometry
 @onready var explorer: ExplorerController = %Explorer
@@ -767,6 +768,9 @@ func _draw() -> void:
 	var route: FieldRoute = _session.route
 	var palette_floor := Color(0.105, 0.12, 0.12) if _session.condition == FieldSession.CONDITION_NORMAL else Color(0.055, 0.064, 0.073)
 	var palette_edge := Color(0.24, 0.27, 0.27) if _session.condition == FieldSession.CONDITION_NORMAL else Color(0.11, 0.14, 0.16)
+	var module_text_color: Color = UI_THEME.get_color(&"module_text", &"FieldCanvas")
+	var object_text_color: Color = UI_THEME.get_color(&"object_text", &"FieldCanvas")
+	var hide_text_color: Color = UI_THEME.get_color(&"hide_text", &"FieldCanvas")
 	draw_rect(route.bounds, Color(0.025, 0.03, 0.035), true)
 	draw_rect(Rect2(0.0, 260.0, route.bounds.size.x, 380.0), palette_floor, true)
 	var branch_top: float = minf(450.0, route.branch_position.y)
@@ -775,7 +779,7 @@ func _draw() -> void:
 	for index: int in range(route.main_module_positions.size()):
 		var position: Vector2 = route.main_module_positions[index]
 		draw_rect(Rect2(position - Vector2(220.0, 155.0), Vector2(440.0, 310.0)), palette_edge, false, 3.0)
-		draw_string(BUNDLED_UI_FONT, position + Vector2(-105.0, -118.0), String(route.main_module_ids[index]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, Color(0.46, 0.5, 0.49))
+		draw_string(BUNDLED_UI_FONT, position + Vector2(-105.0, -118.0), String(route.main_module_ids[index]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, module_text_color)
 
 	draw_rect(Rect2(route.branch_position - Vector2(140.0, 95.0), Vector2(280.0, 190.0)), palette_edge, false, 3.0)
 	draw_circle(route.entrance_position, 42.0, Color(0.21, 0.43, 0.38))
@@ -788,7 +792,7 @@ func _draw() -> void:
 		if state.attempted:
 			color = color.darkened(0.58)
 		draw_rect(Rect2(state.position - Vector2(22.0, 30.0), Vector2(44.0, 60.0)), color, true)
-		draw_string(BUNDLED_UI_FONT, state.position + Vector2(-34.0, 48.0), state.display_name(), HORIZONTAL_ALIGNMENT_CENTER, 68.0, 13, Color(0.58, 0.59, 0.55))
+		draw_string(BUNDLED_UI_FONT, state.position + Vector2(-34.0, 48.0), state.display_name(), HORIZONTAL_ALIGNMENT_CENTER, 68.0, 13, object_text_color)
 
 	for solid_rect: Rect2 in _solid_rectangles:
 		draw_rect(solid_rect, Color(0.17, 0.18, 0.18), true)
@@ -797,7 +801,7 @@ func _draw() -> void:
 		var hide_color := Color(0.19, 0.24, 0.23) if hide_spot.spot_type == FieldHideSpotState.TYPE_CABINET else Color(0.24, 0.2, 0.17)
 		draw_rect(hide_spot.blocker_rect, hide_color, true)
 		draw_rect(hide_spot.blocker_rect, Color(0.38, 0.4, 0.36), false, 2.0)
-		draw_string(BUNDLED_UI_FONT, hide_spot.position + Vector2(-58.0, 72.0), hide_spot.display_name(), HORIZONTAL_ALIGNMENT_CENTER, 116.0, 14, Color(0.66, 0.67, 0.61))
+		draw_string(BUNDLED_UI_FONT, hide_spot.position + Vector2(-58.0, 72.0), hide_spot.display_name(), HORIZONTAL_ALIGNMENT_CENTER, 116.0, 14, hide_text_color)
 
 
 func _rebuild_geometry(route: FieldRoute) -> void:

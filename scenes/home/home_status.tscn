@@ -18,7 +18,7 @@ theme_override_constants/separation = 4
 
 [node name="StatusTitle" type="Label" parent="."]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.690196, 0.65098, 0.568627, 1)
+theme_override_colors/font_color = Color(0.839216, 0.784314, 0.67451, 1)
 theme_override_font_sizes/font_size = 17
 text = "출발 준비 상태"
 
@@ -44,21 +44,21 @@ layout_mode = 2
 [node name="SupplyName" type="Label" parent="SupplyCard/SupplyMargin/SupplyLayout/SupplyRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.768627, 0.741176, 0.67451, 1)
+theme_override_colors/font_color = Color(0.898039, 0.85098, 0.752941, 1)
 theme_override_font_sizes/font_size = 18
 text = "출발 보급"
 
 [node name="SupplyValue" type="Label" parent="SupplyCard/SupplyMargin/SupplyLayout/SupplyRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.933333, 0.847059, 0.690196, 1)
+theme_override_colors/font_color = Color(1, 0.882353, 0.654902, 1)
 theme_override_font_sizes/font_size = 27
 text = "2 / 2"
 
 [node name="SupplyProgress" type="Label" parent="SupplyCard/SupplyMargin/SupplyLayout"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.521569, 0.501961, 0.454902, 1)
+theme_override_colors/font_color = Color(0.713726, 0.698039, 0.666667, 1)
 theme_override_font_sizes/font_size = 15
 text = "보관 한도 도달 · 대기 시간은 이월되지 않음"
 
@@ -73,14 +73,14 @@ theme_override_constants/separation = 2
 
 [node name="PartsTitle" type="Label" parent="Details/PartsGroup"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.47451, 0.447059, 1)
+theme_override_colors/font_color = Color(0.658824, 0.647059, 0.619608, 1)
 theme_override_font_sizes/font_size = 14
 text = "설비 부품"
 
 [node name="FacilityPartsValue" type="Label" parent="Details/PartsGroup"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.776471, 0.756863, 0.705882, 1)
+theme_override_colors/font_color = Color(0.878431, 0.862745, 0.827451, 1)
 theme_override_font_sizes/font_size = 20
 text = "0"
 
@@ -91,14 +91,14 @@ theme_override_constants/separation = 2
 
 [node name="ProducerTitle" type="Label" parent="Details/ProducerGroup"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.47451, 0.447059, 1)
+theme_override_colors/font_color = Color(0.658824, 0.647059, 0.619608, 1)
 theme_override_font_sizes/font_size = 14
 text = "생산 가구"
 
 [node name="ProducerStateValue" type="Label" parent="Details/ProducerGroup"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.776471, 0.756863, 0.705882, 1)
+theme_override_colors/font_color = Color(0.878431, 0.862745, 0.827451, 1)
 theme_override_font_sizes/font_size = 16
 text = "기본 · 12분 · 최대 2"
 
@@ -106,7 +106,7 @@ text = "기본 · 12분 · 최대 2"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.84, 0.73, 0.55, 1)
+theme_type_variation = &"PrimaryButton"
 theme_override_font_sizes/font_size = 14
 text = "설비 부품 4 소비 · 생산 가구 강화"
 
@@ -131,26 +131,26 @@ theme_override_font_sizes/font_size = 14
 unique_name_in_owner = true
 custom_minimum_size = Vector2(116, 32)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.93, 0.85, 0.7, 1)
+theme_type_variation = &"PrimaryButton"
 theme_override_font_sizes/font_size = 15
 text = "보급 1 소비 · 출발"
 
 [node name="TestLoadout" type="Label" parent="."]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.57, 0.54, 0.48, 1)
+theme_override_colors/font_color = Color(0.666667, 0.647059, 0.603922, 1)
 theme_override_font_sizes/font_size = 13
 text = "테스트 지급품  ·  빠루 1  ·  퓨즈 1  (상점 없음)"
 
 [node name="DepartureMessage" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.73, 0.55, 0.43, 1)
+theme_override_colors/font_color = Color(0.839216, 0.607843, 0.470588, 1)
 theme_override_font_sizes/font_size = 12
 text = "평상/정전과 손전등을 직접 선택하세요."
 
 [node name="StorageState" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.380392, 0.4, 0.403922, 1)
+theme_override_colors/font_color = Color(0.576471, 0.603922, 0.611765, 1)
 theme_override_font_sizes/font_size = 13
 text = "schema v1 · 저장됨"
