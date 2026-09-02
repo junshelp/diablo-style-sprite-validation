@@ -8,7 +8,9 @@ extends CharacterBody2D
 @onready var fov_debug_cone: Polygon2D = %FovDebugCone
 
 var forward_vector: Vector2 = Vector2.LEFT
+var _encounter_active: bool = false
 var _simulation_enabled: bool = false
+var _player_visible: bool = false
 var _debug_fov_enabled: bool = false
 
 
@@ -18,21 +20,35 @@ func _ready() -> void:
 
 
 func set_active(value: bool) -> void:
-	visible = value
+	_encounter_active = value
 	_simulation_enabled = value
 	if not value:
 		velocity = Vector2.ZERO
-	fov_debug_cone.visible = value and _debug_fov_enabled
+		_player_visible = false
+	_apply_player_visibility()
 
 
 func is_active() -> bool:
-	return visible and _simulation_enabled
+	return _encounter_active and _simulation_enabled
 
 
 func set_simulation_enabled(value: bool) -> void:
-	_simulation_enabled = value and visible
+	_simulation_enabled = value and _encounter_active
 	if not _simulation_enabled:
 		velocity = Vector2.ZERO
+
+
+func set_player_visible(value: bool) -> void:
+	_player_visible = value
+	_apply_player_visibility()
+
+
+func player_visible() -> bool:
+	return _encounter_active and _player_visible
+
+
+func encounter_active() -> bool:
+	return _encounter_active
 
 
 func set_forward(value: Vector2) -> void:
@@ -63,7 +79,7 @@ func stop_motion() -> void:
 
 func set_debug_fov_visible(value: bool) -> void:
 	_debug_fov_enabled = value
-	fov_debug_cone.visible = visible and value
+	_apply_player_visibility()
 
 
 func debug_fov_visible() -> bool:
@@ -83,3 +99,11 @@ func _build_debug_cone() -> void:
 		var angle_degrees: float = -FieldSightRules.FOV_DEGREES * 0.5 + FieldSightRules.FOV_DEGREES * float(index) / 12.0
 		points.append(Vector2.RIGHT.rotated(deg_to_rad(angle_degrees)) * FieldSightRules.MAX_SIGHT_DISTANCE)
 	fov_debug_cone.polygon = points
+
+
+func _apply_player_visibility() -> void:
+	var presentation_visible: bool = _encounter_active and _player_visible
+	visible = _encounter_active and (_player_visible or _debug_fov_enabled)
+	body_shape.visible = presentation_visible
+	facing_mark.visible = presentation_visible
+	fov_debug_cone.visible = _encounter_active and _debug_fov_enabled

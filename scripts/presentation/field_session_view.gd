@@ -25,6 +25,7 @@ const CONE_LIGHT_TEXTURE_SIZE: int = 512
 const MINIMUM_VISIBILITY_RADIUS: float = 118.0
 const FLASHLIGHT_CONE_RANGE: float = 384.0
 const FLASHLIGHT_CONE_HALF_ANGLE_DEGREES: float = 34.0
+const MOBILE_INITIAL_EXPLORER_OFFSET: Vector2 = Vector2(440.0, 0.0)
 const RESTORED_FIXTURE_RADIUS: float = 256.0
 const NORMAL_AMBIENT: Color = Color(0.9, 0.92, 0.88, 1.0)
 const BLACKOUT_AMBIENT: Color = Color(0.045, 0.055, 0.075, 1.0)
@@ -120,7 +121,7 @@ func start_session(session: FieldSession) -> void:
 	visible = true
 	field_hud.visible = true
 	set_process(true)
-	explorer.position = session.route.entrance_position + Vector2(110.0, 0.0)
+	explorer.position = _initial_explorer_position(session)
 	explorer.configure_camera_bounds(session.route.bounds)
 	explorer.follow_camera.enabled = true
 	explorer.follow_camera.reset_smoothing()
@@ -197,6 +198,7 @@ func move_explorer_to(position: Vector2) -> void:
 		_refresh_nearby_object()
 		_refresh_nearby_hide_spot()
 		_refresh_nearby_extraction_point()
+		_sync_entity_player_visibility()
 
 
 func move_explorer_to_object_type(object_type: StringName) -> StringName:
@@ -233,6 +235,7 @@ func mobile_movement_vector() -> Vector2:
 
 func set_explorer_facing_for_test(input_vector: Vector2) -> void:
 	explorer.set_facing_for_test(input_vector)
+	_sync_entity_player_visibility()
 
 
 func explorer_facing_direction() -> Vector2:
@@ -317,6 +320,7 @@ func advance_encounter_for_test(delta: float, explorer_visible: bool, contact: b
 func set_entity_pose_for_test(position: Vector2, forward: Vector2) -> void:
 	chase_entity.position = position
 	chase_entity.set_forward(forward)
+	_sync_entity_player_visibility()
 
 
 func entity_position() -> Vector2:
@@ -324,7 +328,34 @@ func entity_position() -> Vector2:
 
 
 func entity_visible() -> bool:
-	return chase_entity.visible
+	return chase_entity.encounter_active()
+
+
+func entity_player_visible() -> bool:
+	return chase_entity.player_visible()
+
+
+func player_can_see_entity() -> bool:
+	if _session == null or not chase_entity.encounter_active():
+		return false
+	if _ray_is_blocked(explorer.position, chase_entity.position):
+		return false
+	var lighting_state: StringName = _resolved_lighting_state()
+	if lighting_state == LIGHTING_STATE_NORMAL or lighting_state == LIGHTING_STATE_RESTORED:
+		return true
+	var offset: Vector2 = chase_entity.position - explorer.position
+	var distance: float = offset.length()
+	if distance <= MINIMUM_VISIBILITY_RADIUS:
+		return true
+	if lighting_state != LIGHTING_STATE_BLACKOUT_FLASHLIGHT or distance > FLASHLIGHT_CONE_RANGE:
+		return false
+	if offset.length_squared() <= 0.000001:
+		return true
+	var facing: Vector2 = explorer.last_facing_direction().normalized()
+	if facing == Vector2.ZERO:
+		return false
+	var minimum_dot: float = cos(deg_to_rad(FLASHLIGHT_CONE_HALF_ANGLE_DEGREES))
+	return facing.dot(offset.normalized()) >= minimum_dot - 0.000001
 
 
 func set_fov_debug_visible(value: bool) -> void:
@@ -547,6 +578,7 @@ func _tick_field(delta: float) -> void:
 	if interaction_pressed and not _interaction_was_pressed:
 		_try_context_action()
 	_interaction_was_pressed = interaction_pressed
+	_sync_entity_player_visibility()
 
 
 func _try_context_action() -> bool:
@@ -827,6 +859,11 @@ func _sync_encounter_presentation() -> void:
 	)
 	explorer.set_simulation_enabled(explorer_should_move)
 	_render_session_state()
+	_sync_entity_player_visibility()
+
+
+func _sync_entity_player_visibility() -> void:
+	chase_entity.set_player_visible(player_can_see_entity())
 
 
 func _on_warning_started() -> void:
@@ -871,6 +908,12 @@ func _hp_pips(hp: int) -> String:
 
 func _entity_spawn_position(session: FieldSession) -> Vector2:
 	return session.route.endpoint_position - Vector2(145.0, 0.0)
+
+
+func _initial_explorer_position(session: FieldSession) -> Vector2:
+	if _mobile_touch_layout:
+		return session.route.entrance_position + MOBILE_INITIAL_EXPLORER_OFFSET
+	return session.route.entrance_position + Vector2(110.0, 0.0)
 
 
 func _on_menu_cancel_requested() -> void:
