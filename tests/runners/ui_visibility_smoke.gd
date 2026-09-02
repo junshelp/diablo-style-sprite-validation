@@ -67,6 +67,10 @@ func _test_home_field_and_menu() -> void:
 	get_root().add_child(app_root)
 	await process_frame
 	await process_frame
+	var mobile_controls: MobileFieldControls = app_root.mobile_controls_node()
+	var desktop_mobile_state: Dictionary = mobile_controls.environment_snapshot()
+	_check(not bool(desktop_mobile_state["touch_environment"]), "desktop visibility fixture stays outside the mobile touch layout")
+	_check(not bool(desktop_mobile_state["landscape_controls_visible"]) and not bool(desktop_mobile_state["portrait_notice_visible"]), "desktop UI keeps mobile controls and portrait notice hidden")
 
 	var compact := app_root.get_node("%CompactSurface") as PanelContainer
 	var room := app_root.get_node("CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder") as PanelContainer
@@ -148,6 +152,9 @@ func _test_home_field_and_menu() -> void:
 	_check_label(content.get_node("ItemStage/AttemptWarning") as Label, panel_background, PRIMARY_TEXT_CONTRAST, "menu attempt warning")
 	_check_button_states(content.get_node("ItemStage/ToolRow/CrowbarButton") as Button, panel_background, "crowbar choice")
 	_check_button_states(content.get_node("ItemStage/ToolRow/FuseButton") as Button, panel_background, "fuse choice")
+	var back_button := content.get_node("BackButton") as Button
+	_check_button_states(back_button, panel_background, "menu back")
+	_check(back_button.text == "뒤로" and back_button.custom_minimum_size.y >= 44.0, "menu exposes a legible touch-sized back button")
 
 	app_root.queue_free()
 	await process_frame

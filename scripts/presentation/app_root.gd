@@ -9,6 +9,7 @@ const EXPANDED_FIELD_MODE: StringName = &"expanded_field"
 @onready var compact_surface: Control = %CompactSurface
 @onready var expanded_surface: Control = %ExpandedSurface
 @onready var field_session_view: FieldSessionView = %FieldSessionView
+@onready var mobile_controls: MobileFieldControls = %MobileFieldControls
 @onready var mode_label: Label = %ModeLabel
 @onready var surface_toggle: Button = %SurfaceToggle
 @onready var supply_ticker: Label = %SupplyTicker
@@ -23,6 +24,9 @@ const EXPANDED_FIELD_MODE: StringName = &"expanded_field"
 @onready var flashlight_select: OptionButton = home_status.get_node("%FlashlightSelect") as OptionButton
 @onready var departure_button: Button = home_status.get_node("%DepartureButton") as Button
 @onready var departure_message: Label = home_status.get_node("%DepartureMessage") as Label
+@onready var compact_margin: MarginContainer = $CompactSurface/CompactMargin
+@onready var compact_layout: VBoxContainer = $CompactSurface/CompactMargin/CompactLayout
+@onready var test_loadout: Label = home_status.get_node("TestLoadout") as Label
 
 var _surface_mode: StringName = COMPACT_HOME_MODE
 var _home_profile_service: HomeProfileService
@@ -33,6 +37,8 @@ var _home_profile: HomeProfile
 var _active_field_session: FieldSession
 var _refresh_accumulator_seconds: float = 0.0
 var _next_runtime_seed: int = 20_260_829
+var _mobile_touch_layout_enabled: bool = false
+var _mobile_layout_scale: float = 1.0
 
 
 func _ready() -> void:
@@ -56,6 +62,16 @@ func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	field_session_view.extraction_requested.connect(_on_extraction_requested)
 	field_session_view.rescue_requested.connect(_on_rescue_requested)
+	field_session_view.interaction_menu_visibility_changed.connect(_on_interaction_menu_visibility_changed)
+	mobile_controls.movement_vector_changed.connect(field_session_view.set_mobile_movement)
+	mobile_controls.action_requested.connect(_on_mobile_action_requested)
+	mobile_controls.environment_changed.connect(_on_mobile_environment_changed)
+	var mobile_environment: Dictionary = mobile_controls.environment_snapshot()
+	_on_mobile_environment_changed(
+		bool(mobile_environment["touch_environment"]),
+		bool(mobile_environment["portrait"]),
+		float(mobile_environment["layout_scale"])
+	)
 	_apply_surface_mode()
 	_apply_profile_result(_home_profile_service.load_or_create())
 
@@ -120,6 +136,14 @@ func active_field_session_snapshot() -> Dictionary:
 
 func current_surface_mode() -> StringName:
 	return _surface_mode
+
+
+func mobile_controls_node() -> MobileFieldControls:
+	return mobile_controls
+
+
+func set_mobile_test_environment(touch_available: bool, viewport_size: Vector2i) -> void:
+	mobile_controls.set_test_environment(touch_available, viewport_size)
 
 
 func select_preparation(condition: StringName, flashlight_equipped: bool) -> void:
@@ -242,7 +266,88 @@ func _apply_surface_mode() -> void:
 	field_session_view.visible = field_is_expanded and _active_field_session != null
 	mode_label.text = "FIELD / EXPANDED" if field_is_expanded else "HOME / COMPACT"
 	surface_toggle.text = "집으로 접기" if field_is_expanded else "필드 펼치기"
-	surface_toggle.visible = _active_field_session == null
+	surface_toggle.visible = _active_field_session == null and not _mobile_touch_layout_enabled
+	mobile_controls.set_field_active(field_is_expanded and _active_field_session != null)
+	mobile_controls.set_menu_blocked(field_session_view.interaction_menu_node().visible)
+
+
+func _on_mobile_environment_changed(touch_environment: bool, _portrait: bool, layout_scale: float) -> void:
+	_mobile_touch_layout_enabled = touch_environment
+	_mobile_layout_scale = layout_scale if touch_environment else 1.0
+	_apply_mobile_home_layout(touch_environment, _mobile_layout_scale)
+	field_session_view.set_mobile_touch_layout(touch_environment, _mobile_layout_scale)
+	if is_node_ready():
+		_apply_surface_mode()
+
+
+func _on_interaction_menu_visibility_changed(is_open: bool) -> void:
+	mobile_controls.set_menu_blocked(is_open)
+
+
+func _on_mobile_action_requested() -> void:
+	field_session_view.request_context_action()
+
+
+func _apply_mobile_home_layout(enabled: bool, layout_scale: float) -> void:
+	var scale_factor: float = layout_scale if enabled else 1.0
+	compact_surface.custom_minimum_size = Vector2.ZERO if enabled else Vector2(720.0, 405.0)
+	if enabled:
+		compact_surface.anchor_left = 0.0
+		compact_surface.anchor_top = 0.0
+		compact_surface.anchor_right = 1.0
+		compact_surface.anchor_bottom = 1.0
+		compact_surface.offset_left = 12.0 * scale_factor
+		compact_surface.offset_top = 12.0 * scale_factor
+		compact_surface.offset_right = -12.0 * scale_factor
+		compact_surface.offset_bottom = -12.0 * scale_factor
+	else:
+		compact_surface.anchor_left = 0.5
+		compact_surface.anchor_top = 0.5
+		compact_surface.anchor_right = 0.5
+		compact_surface.anchor_bottom = 0.5
+		compact_surface.offset_left = -360.0
+		compact_surface.offset_top = -202.5
+		compact_surface.offset_right = 360.0
+		compact_surface.offset_bottom = 202.5
+	compact_margin.add_theme_constant_override("margin_left", int(round((14.0 if enabled else 28.0) * scale_factor)))
+	compact_margin.add_theme_constant_override("margin_top", int(round((8.0 if enabled else 18.0) * scale_factor)))
+	compact_margin.add_theme_constant_override("margin_right", int(round((14.0 if enabled else 28.0) * scale_factor)))
+	compact_margin.add_theme_constant_override("margin_bottom", int(round((8.0 if enabled else 18.0) * scale_factor)))
+	compact_layout.add_theme_constant_override("separation", int(round((6.0 if enabled else 10.0) * scale_factor)))
+	home_status.add_theme_constant_override("separation", int(round((3.0 if enabled else 4.0) * scale_factor)))
+	upgrade_button.custom_minimum_size.y = (46.0 if enabled else 30.0) * scale_factor
+	condition_select.custom_minimum_size = (Vector2(140.0, 48.0) if enabled else Vector2(104.0, 32.0)) * scale_factor
+	flashlight_select.custom_minimum_size = (Vector2(180.0, 48.0) if enabled else Vector2(142.0, 32.0)) * scale_factor
+	departure_button.custom_minimum_size = (Vector2(190.0, 48.0) if enabled else Vector2(116.0, 32.0)) * scale_factor
+	_apply_mobile_home_font_sizes(enabled, scale_factor)
+	test_loadout.visible = not enabled
+	storage_state.visible = not enabled
+	mode_label.visible = not enabled
+	supply_ticker.visible = not enabled
+	surface_toggle.visible = _active_field_session == null and not enabled
+
+
+func _apply_mobile_home_font_sizes(enabled: bool, scale_factor: float) -> void:
+	var font_sizes: Array[Dictionary] = [
+		{"path": "CompactSurface/CompactMargin/CompactLayout/HomeTitle", "mobile": 20, "desktop": 23},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/StatusTitle", "mobile": 15, "desktop": 17},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/SupplyCard/SupplyMargin/SupplyLayout/SupplyRow/SupplyName", "mobile": 15, "desktop": 18},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/SupplyCard/SupplyMargin/SupplyLayout/SupplyRow/SupplyValue", "mobile": 23, "desktop": 27},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/SupplyCard/SupplyMargin/SupplyLayout/SupplyProgress", "mobile": 12, "desktop": 15},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/Details/PartsGroup/PartsTitle", "mobile": 11, "desktop": 14},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/Details/PartsGroup/FacilityPartsValue", "mobile": 14, "desktop": 20},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/Details/ProducerGroup/ProducerTitle", "mobile": 11, "desktop": 14},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/Details/ProducerGroup/ProducerStateValue", "mobile": 14, "desktop": 16},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/UpgradeButton", "mobile": 13, "desktop": 14},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/PreparationRow/ConditionSelect", "mobile": 13, "desktop": 14},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/PreparationRow/FlashlightSelect", "mobile": 13, "desktop": 14},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/PreparationRow/DepartureButton", "mobile": 13, "desktop": 15},
+		{"path": "CompactSurface/CompactMargin/CompactLayout/RoomPlaceholder/StatusMargin/HomeStatus/DepartureMessage", "mobile": 11, "desktop": 12},
+	]
+	for entry: Dictionary in font_sizes:
+		var control := get_node(entry["path"] as String) as Control
+		var target_size: int = int(entry["mobile"] if enabled else entry["desktop"])
+		control.add_theme_font_size_override("font_size", int(round(float(target_size) * scale_factor)))
 
 
 func _apply_profile_result(result: HomeProfileService.LoadResult) -> void:

@@ -10,6 +10,7 @@ extends CharacterBody2D
 
 var _simulation_enabled: bool = true
 var _last_facing_direction: Vector2 = Vector2.RIGHT
+var _mobile_movement_vector: Vector2 = Vector2.ZERO
 
 const FACING_DIRECTIONS: Array[Vector2] = [
 	Vector2.RIGHT,
@@ -31,7 +32,7 @@ func _physics_process(_delta: float) -> void:
 	if not _simulation_enabled:
 		velocity = Vector2.ZERO
 		return
-	var input_vector: Vector2 = _read_keyboard_vector()
+	var input_vector: Vector2 = _read_movement_vector()
 	_update_facing(input_vector)
 	velocity = velocity_for_input(input_vector)
 	move_and_slide()
@@ -63,6 +64,17 @@ func set_visibility_lights(minimum_enabled: bool, flashlight_enabled: bool) -> v
 	flashlight_light.visible = flashlight_enabled
 
 
+func set_mobile_movement(input_vector: Vector2) -> void:
+	if not _simulation_enabled:
+		_mobile_movement_vector = Vector2.ZERO
+		return
+	_mobile_movement_vector = input_vector.limit_length(1.0)
+
+
+func mobile_movement_vector() -> Vector2:
+	return _mobile_movement_vector
+
+
 func last_facing_direction() -> Vector2:
 	return _last_facing_direction
 
@@ -90,6 +102,7 @@ func set_simulation_enabled(value: bool) -> void:
 	_simulation_enabled = value
 	if not value:
 		velocity = Vector2.ZERO
+		_mobile_movement_vector = Vector2.ZERO
 
 
 func simulation_enabled() -> bool:
@@ -140,3 +153,7 @@ func _read_keyboard_vector() -> Vector2:
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
 		vertical += 1.0
 	return Vector2(horizontal, vertical)
+
+
+func _read_movement_vector() -> Vector2:
+	return (_read_keyboard_vector() + _mobile_movement_vector).limit_length(1.0)

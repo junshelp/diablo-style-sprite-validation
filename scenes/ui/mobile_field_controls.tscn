@@ -1,0 +1,226 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/mobile_field_controls.gd" id="1_mobile"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_pad"]
+bg_color = Color(0.025, 0.03, 0.034, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.454902, 0.486275, 0.505882, 0.92)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_notice"]
+bg_color = Color(0.035, 0.039, 0.043, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.819608, 0.478431, 0.34902, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="MobileFieldControls" type="CanvasLayer"]
+unique_name_in_owner = true
+layer = 10
+script = ExtResource("1_mobile")
+
+[node name="ResponsiveRoot" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LandscapeControls" type="Control" parent="ResponsiveRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DirectionPad" type="PanelContainer" parent="ResponsiveRoot/LandscapeControls"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -210.0
+offset_right = 210.0
+offset_bottom = -16.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_pad")
+
+[node name="PadMargin" type="MarginContainer" parent="ResponsiveRoot/LandscapeControls/DirectionPad"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="PadGrid" type="GridContainer" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin"]
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 3
+
+[node name="NorthWestButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "↖"
+
+[node name="NorthButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "↑"
+
+[node name="NorthEastButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "↗"
+
+[node name="WestButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "←"
+
+[node name="PadCenter" type="Control" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="EastButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "→"
+
+[node name="SouthWestButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "↙"
+
+[node name="SouthButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "↓"
+
+[node name="SouthEastButton" type="Button" parent="ResponsiveRoot/LandscapeControls/DirectionPad/PadMargin/PadGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 2
+focus_mode = 0
+keep_pressed_outside = true
+theme_override_font_sizes/font_size = 23
+text = "↘"
+
+[node name="ActionButton" type="Button" parent="ResponsiveRoot/LandscapeControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(136, 92)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -152.0
+offset_top = -108.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+focus_mode = 0
+theme_type_variation = &"PrimaryButton"
+theme_override_font_sizes/font_size = 24
+text = "행동"
+
+[node name="PortraitNotice" type="ColorRect" parent="ResponsiveRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.015, 0.018, 0.024, 0.985)
+
+[node name="NoticeCenter" type="CenterContainer" parent="ResponsiveRoot/PortraitNotice"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="NoticePanel" type="PanelContainer" parent="ResponsiveRoot/PortraitNotice/NoticeCenter"]
+custom_minimum_size = Vector2(340, 174)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_notice")
+
+[node name="NoticeMargin" type="MarginContainer" parent="ResponsiveRoot/PortraitNotice/NoticeCenter/NoticePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 22
+
+[node name="NoticeLayout" type="VBoxContainer" parent="ResponsiveRoot/PortraitNotice/NoticeCenter/NoticePanel/NoticeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NoticeTitle" type="Label" parent="ResponsiveRoot/PortraitNotice/NoticeCenter/NoticePanel/NoticeMargin/NoticeLayout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.945098, 0.886275, 1)
+theme_override_font_sizes/font_size = 25
+text = "가로 모드로 돌려 주세요"
+horizontal_alignment = 1
+
+[node name="NoticeBody" type="Label" parent="ResponsiveRoot/PortraitNotice/NoticeCenter/NoticePanel/NoticeMargin/NoticeLayout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713726, 0.733333, 0.72549, 1)
+theme_override_font_sizes/font_size = 16
+text = "필드 이동과 행동 입력은\n가로 화면에서 다시 활성화됩니다."
+horizontal_alignment = 1

@@ -4,6 +4,7 @@ extends Node2D
 signal entrance_return_requested
 signal extraction_requested(point_type: StringName)
 signal interaction_result_applied(result: ObjectInteractionResult)
+signal interaction_menu_visibility_changed(is_open: bool)
 signal rescue_requested(lost_unextracted_parts: int)
 
 const RETURN_RADIUS: float = 78.0
@@ -50,6 +51,7 @@ static var _flashlight_cone_texture: ImageTexture
 @onready var hp_label: Label = %HpLabel
 @onready var encounter_state_label: Label = %EncounterStateLabel
 @onready var encounter_banner: Label = %EncounterBanner
+@onready var control_hint: Label = $FieldCanvas/FieldHud/ControlHint
 @onready var return_prompt: Label = %ReturnPrompt
 @onready var object_prompt: Label = %ObjectPrompt
 @onready var hide_prompt: Label = %HidePrompt
@@ -58,6 +60,8 @@ static var _flashlight_cone_texture: ImageTexture
 @onready var encounter_tint: ColorRect = %EncounterTint
 @onready var field_canvas: CanvasLayer = %FieldCanvas
 @onready var field_hud: Control = %FieldHud
+@onready var top_bar: PanelContainer = $FieldCanvas/FieldHud/TopBar
+@onready var top_margin: MarginContainer = $FieldCanvas/FieldHud/TopBar/TopMargin
 @onready var interaction_menu: ObjectInteractionMenu = %ObjectInteractionMenu
 @onready var warning_audio: AudioStreamPlayer = %WarningAudio
 
@@ -77,6 +81,7 @@ var _visual_elapsed_seconds: float = 0.0
 var _warning_tone: AudioStreamWAV
 var _warning_feedback_played: bool = false
 var _entered_hide_spot_id: StringName = &""
+var _mobile_touch_layout: bool = false
 
 
 func _ready() -> void:
@@ -88,6 +93,7 @@ func _ready() -> void:
 	visible = false
 	field_hud.visible = false
 	interaction_menu.close_menu()
+	interaction_menu_visibility_changed.emit(false)
 	interaction_menu.base_search_selected.connect(_on_base_search_selected)
 	interaction_menu.tool_selected.connect(_on_tool_selected)
 	interaction_menu.cancel_requested.connect(_on_menu_cancel_requested)
@@ -215,6 +221,14 @@ func move_explorer_to_object(object_id: StringName) -> bool:
 
 func move_explorer_for_test(input_vector: Vector2, delta: float) -> void:
 	explorer.move_for_test(input_vector, delta)
+
+
+func set_mobile_movement(input_vector: Vector2) -> void:
+	explorer.set_mobile_movement(input_vector)
+
+
+func mobile_movement_vector() -> Vector2:
+	return explorer.mobile_movement_vector()
 
 
 func set_explorer_facing_for_test(input_vector: Vector2) -> void:
@@ -349,6 +363,66 @@ func interaction_menu_node() -> ObjectInteractionMenu:
 	return interaction_menu
 
 
+func set_mobile_touch_layout(enabled: bool, layout_scale: float = 1.0) -> void:
+	_mobile_touch_layout = enabled
+	var scale_factor: float = layout_scale if enabled else 1.0
+	control_hint.visible = not enabled
+	route_label.visible = not enabled
+	top_bar.offset_bottom = (82.0 if enabled else 82.0) * scale_factor
+	top_margin.add_theme_constant_override("margin_left", int(round((18.0 if enabled else 34.0) * scale_factor)))
+	top_margin.add_theme_constant_override("margin_top", int(round((14.0 if enabled else 18.0) * scale_factor)))
+	top_margin.add_theme_constant_override("margin_right", int(round((18.0 if enabled else 34.0) * scale_factor)))
+	top_margin.add_theme_constant_override("margin_bottom", int(round((12.0 if enabled else 16.0) * scale_factor)))
+	var top_layout := top_margin.get_node("TopLayout") as HBoxContainer
+	top_layout.add_theme_constant_override("separation", int(round((12.0 if enabled else 28.0) * scale_factor)))
+	condition_label.add_theme_font_size_override("font_size", int(round((20.0 if enabled else 21.0) * scale_factor)))
+	loadout_label.add_theme_font_size_override("font_size", int(round((15.0 if enabled else 17.0) * scale_factor)))
+	hp_label.add_theme_font_size_override("font_size", int(round(17.0 * scale_factor)))
+	encounter_state_label.add_theme_font_size_override("font_size", int(round(14.0 * scale_factor)))
+	session_state_label.add_theme_font_size_override("font_size", int(round(15.0 * scale_factor)))
+	return_prompt.add_theme_font_size_override("font_size", int(round(20.0 * scale_factor)))
+	object_prompt.add_theme_font_size_override("font_size", int(round(20.0 * scale_factor)))
+	hide_prompt.add_theme_font_size_override("font_size", int(round(21.0 * scale_factor)))
+	result_label.add_theme_font_size_override("font_size", int(round(15.0 * scale_factor)))
+	_set_mobile_hud_offsets(enabled, scale_factor)
+	interaction_menu.set_mobile_touch_layout(enabled, scale_factor)
+	if _session != null and not _session.field_simulation_paused:
+		_refresh_nearby_object()
+		_refresh_nearby_hide_spot()
+		_refresh_nearby_extraction_point()
+
+
+func _set_mobile_hud_offsets(enabled: bool, scale_factor: float) -> void:
+	hp_label.offset_left = 18.0 * scale_factor if enabled else 34.0
+	hp_label.offset_top = 92.0 * scale_factor
+	hp_label.offset_right = 300.0 * scale_factor
+	hp_label.offset_bottom = 124.0 * scale_factor
+	encounter_state_label.offset_left = 18.0 * scale_factor if enabled else 34.0
+	encounter_state_label.offset_top = 126.0 * scale_factor
+	encounter_state_label.offset_right = 360.0 * scale_factor
+	encounter_state_label.offset_bottom = 156.0 * scale_factor
+	session_state_label.offset_left = -390.0 * scale_factor
+	session_state_label.offset_top = 92.0 * scale_factor
+	session_state_label.offset_right = (-18.0 if enabled else -34.0) * scale_factor
+	session_state_label.offset_bottom = 124.0 * scale_factor
+	return_prompt.offset_top = (-88.0 if enabled else -82.0) * scale_factor
+	return_prompt.offset_bottom = (-30.0 if enabled else -34.0) * scale_factor
+	object_prompt.offset_top = (-88.0 if enabled else -82.0) * scale_factor
+	object_prompt.offset_bottom = (-30.0 if enabled else -34.0) * scale_factor
+	hide_prompt.offset_top = -88.0 * scale_factor
+	hide_prompt.offset_bottom = -30.0 * scale_factor
+	return_prompt.offset_left = -180.0 * scale_factor
+	return_prompt.offset_right = 180.0 * scale_factor
+	object_prompt.offset_left = -190.0 * scale_factor
+	object_prompt.offset_right = 190.0 * scale_factor
+	hide_prompt.offset_left = -240.0 * scale_factor
+	hide_prompt.offset_right = 240.0 * scale_factor
+	result_label.offset_left = -520.0 * scale_factor
+	result_label.offset_top = (-72.0 if not enabled else -148.0) * scale_factor
+	result_label.offset_right = (-34.0 if not enabled else -170.0) * scale_factor
+	result_label.offset_bottom = (-24.0 if not enabled else -112.0) * scale_factor
+
+
 func object_check_count() -> int:
 	return _object_check_count
 
@@ -411,6 +485,15 @@ func try_open_nearby_object() -> bool:
 	return _open_object_interaction(_nearby_object_id)
 
 
+func request_context_action() -> bool:
+	if _session == null or _session.field_simulation_paused:
+		return false
+	_refresh_nearby_object()
+	_refresh_nearby_hide_spot()
+	_refresh_nearby_extraction_point()
+	return _try_context_action()
+
+
 func open_object_interaction_for_test(object_id: StringName) -> bool:
 	if _session == null:
 		return false
@@ -462,13 +545,21 @@ func _tick_field(delta: float) -> void:
 	_refresh_nearby_hide_spot()
 	_refresh_nearby_extraction_point()
 	if interaction_pressed and not _interaction_was_pressed:
-		if _session.encounter.state == FieldEncounterState.STATE_CHASING and _nearby_hide_spot_id != &"":
-			_begin_hide(_nearby_hide_spot_id)
-		elif _nearby_object_id != &"":
-			_open_object_interaction(_nearby_object_id)
-		elif _nearby_extraction_point != &"":
-			_request_extraction(_nearby_extraction_point)
+		_try_context_action()
 	_interaction_was_pressed = interaction_pressed
+
+
+func _try_context_action() -> bool:
+	if _session == null or _session.field_simulation_paused:
+		return false
+	if _session.encounter.state == FieldEncounterState.STATE_CHASING and _nearby_hide_spot_id != &"":
+		return _begin_hide(_nearby_hide_spot_id)
+	if _nearby_object_id != &"":
+		return _open_object_interaction(_nearby_object_id)
+	if _nearby_extraction_point != &"":
+		_request_extraction(_nearby_extraction_point)
+		return true
+	return false
 
 
 func _refresh_nearby_object() -> void:
@@ -490,7 +581,7 @@ func _refresh_nearby_object() -> void:
 	object_prompt.visible = _nearby_object_id != &""
 	if _nearby_object_id != &"":
 		var nearby_state: FieldObjectState = _session.object_state(_nearby_object_id)
-		object_prompt.text = "%s  ·  E 조사" % nearby_state.display_name()
+		object_prompt.text = "%s  ·  %s 조사" % [nearby_state.display_name(), _context_action_label()]
 	return_prompt.visible = false
 
 
@@ -509,7 +600,7 @@ func _refresh_nearby_hide_spot() -> void:
 			_nearby_hide_spot_id = spot.spot_id
 	if _nearby_hide_spot_id != &"":
 		var nearby_spot: FieldHideSpotState = _session.hide_spot(_nearby_hide_spot_id)
-		hide_prompt.text = "%s  ·  E 은신" % nearby_spot.display_name()
+		hide_prompt.text = "%s  ·  %s 은신" % [nearby_spot.display_name(), _context_action_label()]
 		hide_prompt.visible = true
 		object_prompt.visible = false
 		return_prompt.visible = false
@@ -524,10 +615,10 @@ func _refresh_nearby_extraction_point() -> void:
 		return
 	if explorer.position.distance_to(_session.route.entrance_position) <= EXTRACTION_RADIUS:
 		_nearby_extraction_point = ExtractionUpgradeRules.EXTRACTION_ENTRANCE
-		return_prompt.text = "입구 회수 지점  ·  E 회수"
+		return_prompt.text = "입구 회수 지점  ·  %s 회수" % _context_action_label()
 	elif explorer.position.distance_to(_session.route.endpoint_position) <= EXTRACTION_RADIUS:
 		_nearby_extraction_point = ExtractionUpgradeRules.EXTRACTION_ENDPOINT
-		return_prompt.text = "종착점 회수 지점  ·  E 회수 · 최소 4 보장"
+		return_prompt.text = "종착점 회수 지점  ·  %s 회수 · 최소 4 보장" % _context_action_label()
 	return_prompt.visible = _nearby_extraction_point != &""
 
 
@@ -563,7 +654,12 @@ func _open_object_interaction(object_id: StringName) -> bool:
 	return_prompt.visible = false
 	object_prompt.visible = false
 	interaction_menu.open_menu(state.display_name(), _session.crowbar_count, _session.fuse_count)
+	interaction_menu_visibility_changed.emit(true)
 	return true
+
+
+func _context_action_label() -> String:
+	return "행동" if _mobile_touch_layout else "E"
 
 
 func _check_deep_entry_trigger() -> void:
@@ -783,6 +879,7 @@ func _on_menu_cancel_requested() -> void:
 	interaction_menu.close_menu()
 	_interaction_service.cancel_interaction(_session)
 	explorer.set_simulation_enabled(true)
+	interaction_menu_visibility_changed.emit(false)
 	_interaction_was_pressed = Input.is_physical_key_pressed(KEY_E)
 	_refresh_nearby_object()
 
@@ -806,6 +903,7 @@ func _commit_interaction(result: ObjectInteractionResult) -> void:
 	# then apply one prepared result through the application boundary.
 	interaction_menu.close_menu()
 	explorer.set_simulation_enabled(true)
+	interaction_menu_visibility_changed.emit(false)
 	if not _interaction_service.apply_result(_session, result):
 		return
 	var encounter_triggered: bool = _encounter_service.try_trigger_from_interaction_result(_session, result)

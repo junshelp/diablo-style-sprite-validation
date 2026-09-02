@@ -16,6 +16,11 @@ const STAGE_ITEM: StringName = &"item"
 @onready var use_item_button: Button = %UseItemButton
 @onready var crowbar_button: Button = %CrowbarButton
 @onready var fuse_button: Button = %FuseButton
+@onready var back_button: Button = %BackButton
+@onready var footer: Label = %Footer
+@onready var screen_margin: MarginContainer = $ScreenMargin
+@onready var panel_margin: MarginContainer = $ScreenMargin/PanelLayout/InteractionPanel/PanelMargin
+@onready var content: VBoxContainer = $ScreenMargin/PanelLayout/InteractionPanel/PanelMargin/Content
 
 var _stage: StringName = STAGE_OBJECT
 
@@ -25,6 +30,7 @@ func _ready() -> void:
 	use_item_button.pressed.connect(show_item_stage)
 	crowbar_button.pressed.connect(_select_crowbar)
 	fuse_button.pressed.connect(_select_fuse)
+	back_button.pressed.connect(go_back)
 	close_menu()
 
 
@@ -105,6 +111,35 @@ func panel_rect() -> Rect2:
 
 func tool_button_rects() -> Array[Rect2]:
 	return [crowbar_button.get_global_rect(), fuse_button.get_global_rect()]
+
+
+func back_button_rect() -> Rect2:
+	return back_button.get_global_rect()
+
+
+func set_mobile_touch_layout(enabled: bool, layout_scale: float = 1.0) -> void:
+	var scale_factor: float = layout_scale if enabled else 1.0
+	footer.visible = not enabled
+	interaction_panel.custom_minimum_size.x = (400.0 if enabled else 430.0) * scale_factor
+	var outer_margin: int = int(round((10.0 if enabled else 18.0) * scale_factor))
+	for side: StringName in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
+		screen_margin.add_theme_constant_override(side, outer_margin)
+	panel_margin.add_theme_constant_override("margin_left", int(round((18.0 if enabled else 28.0) * scale_factor)))
+	panel_margin.add_theme_constant_override("margin_top", int(round((14.0 if enabled else 30.0) * scale_factor)))
+	panel_margin.add_theme_constant_override("margin_right", int(round((18.0 if enabled else 28.0) * scale_factor)))
+	panel_margin.add_theme_constant_override("margin_bottom", int(round((14.0 if enabled else 24.0) * scale_factor)))
+	content.add_theme_constant_override("separation", int(round((9.0 if enabled else 18.0) * scale_factor)))
+	base_search_button.custom_minimum_size.y = (46.0 if enabled else 0.0) * scale_factor
+	use_item_button.custom_minimum_size.y = (46.0 if enabled else 0.0) * scale_factor
+	crowbar_button.custom_minimum_size.y = 94.0 * scale_factor
+	fuse_button.custom_minimum_size.y = 94.0 * scale_factor
+	back_button.custom_minimum_size = Vector2(152.0, 48.0) * scale_factor
+	object_name_label.add_theme_font_size_override("font_size", int(round(27.0 * scale_factor)))
+	base_search_button.add_theme_font_size_override("font_size", int(round(19.0 * scale_factor)))
+	use_item_button.add_theme_font_size_override("font_size", int(round(19.0 * scale_factor)))
+	crowbar_button.add_theme_font_size_override("font_size", int(round(17.0 * scale_factor)))
+	fuse_button.add_theme_font_size_override("font_size", int(round(17.0 * scale_factor)))
+	back_button.add_theme_font_size_override("font_size", int(round(17.0 * scale_factor)))
 
 
 func select_base_search_for_test() -> void:

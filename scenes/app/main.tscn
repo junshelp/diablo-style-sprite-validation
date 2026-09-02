@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/presentation/app_root.gd" id="1_app"]
 [ext_resource type="PackedScene" path="res://scenes/home/home_status.tscn" id="2_home"]
 [ext_resource type="PackedScene" path="res://scenes/field/field_session.tscn" id="3_field"]
+[ext_resource type="PackedScene" path="res://scenes/ui/mobile_field_controls.tscn" id="4_mobile"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_compact"]
 bg_color = Color(0.0705882, 0.0784314, 0.0901961, 1)
@@ -214,3 +215,6 @@ focus_neighbor_left = NodePath(".")
 theme_type_variation = &"PrimaryButton"
 theme_override_font_sizes/font_size = 20
 text = "필드 펼치기"
+
+[node name="MobileFieldControls" parent="." instance=ExtResource("4_mobile")]
+unique_name_in_owner = true

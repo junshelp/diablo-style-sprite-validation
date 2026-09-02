@@ -91,6 +91,9 @@ func _test_web_build() -> void:
 	_check(html.contains('"executable":"index"'), "HTML config resolves pck/wasm beside index by relative executable name")
 	_check(not html.contains('src="/index.js"'), "HTML has no domain-root loader path")
 	_check(not html.contains('<base href="/'), "HTML has no root base URL that breaks a Pages project subpath")
+	_check(html.contains("touch-action: none"), "Web shell keeps gameplay touch gestures on the canvas")
+	_check(html.contains("overflow: hidden"), "Web shell prevents page scroll from stealing held controls")
+	_check(html.contains("user-scalable=no"), "Web viewport prevents browser zoom from interrupting touch input")
 	_check(not FileAccess.file_exists("%s/coi-serviceworker.js" % WEB_DIRECTORY), "no-threads build needs no cross-origin service worker")
 	_check(FileAccess.get_file_as_bytes("%s/index.pck" % WEB_DIRECTORY).size() > 1000000, "Web resource pack includes the bundled Korean font")
 	for forbidden_name: String in ["tests", "docs", "concepts", "_workspace", ".agents", ".github"]:

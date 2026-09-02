@@ -156,7 +156,16 @@ custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="BackButton" type="Button" parent="ScreenMargin/PanelLayout/InteractionPanel/PanelMargin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(152, 48)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 17
+text = "뒤로"
+
 [node name="Footer" type="Label" parent="ScreenMargin/PanelLayout/InteractionPanel/PanelMargin/Content"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.682353, 0.705882, 0.686275, 1)
 theme_override_font_sizes/font_size = 14
